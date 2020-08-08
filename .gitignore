@@ -1,0 +1,4 @@
+.secrets.env
+.venv/
+__pycache__/
+BUILD_INSTRUCTIONS.md
