@@ -30,12 +30,17 @@ login_layout = html.Div(
                                 type="submit",
                                 id="login-button",
                                 className="a-button"
+                            ),
+                            html.Div(
+                                children='',
+                                id="login-error",
+                                className="error-message"
                             )
                         ]
                     ),
                     html.Div(
-                        className = "footer",
-                        children = [
+                        className="footer",
+                        children=[
                             html.Button(
                                 children="Create Account",
                                 n_clicks=0,
@@ -47,7 +52,7 @@ login_layout = html.Div(
                     )
                 ]
             ),
-            type = "graph"
+            type="graph"
         )
     ]
 )
@@ -66,7 +71,7 @@ logout_layout = html.Div(
                             n_clicks=0,
                             type="submit",
                             id="re-login-button",
-                            className = "a-button"
+                            className="a-button"
                         )
                     ]
                 ),
@@ -77,9 +82,35 @@ logout_layout = html.Div(
 
 create_account_layout = html.Div(
     children=[
+
+        html.Div(
+            className="modal login-input",
+            id="confirmation-modal",
+            children=[
+                dcc.Input(
+                    placeholder="Confirmation Code (check ur email)",
+                    type="text",
+                    id="conf-code-box",
+                    debounce=True
+                ),
+                html.Button(
+                    children="Go",
+                    n_clicks=0,
+                    type="submit",
+                    id="conf-code-submit",
+                    className="a-button"
+                ),
+                html.Div(
+                    children='',
+                    id="confirm-error",
+                    className="error-message"
+                )
+            ]
+        ),
         dcc.Loading(
             html.Div(
                 className="login-logout",
+                id = "create-account-form",
                 children=[
                     dcc.Location(id="url_create", refresh=True),
                     html.H1("Create an Account"),
@@ -117,12 +148,16 @@ create_account_layout = html.Div(
                                 id="create-account-submit",
                                 className="a-button"
                             ),
-                            html.Div(children='', id="create-error")
+                            html.Div(
+                                children='',
+                                id="create-error",
+                                className="error-message"
+                            )
                         ]
-                    )
-                ]
+                    ),
+                ],
             ),
-            type = "graph"
+            type="graph"
         )
     ]
 )

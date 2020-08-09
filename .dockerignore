@@ -1,1 +1,4 @@
 .venv/
+rerun-container.sh
+BUILD_INSTRUCTIONS.md
+.git/
