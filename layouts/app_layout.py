@@ -14,7 +14,7 @@ def serve_layout():
                             className = "logo",
                             src=app.get_asset_url("diabetes.svg")
                         ),
-                        html.Span(className="app-title", children="Header Title"),
+                        html.Span(className="app-title", children="The Beetus"),
                         html.Div(
                             id = "header-logout",
                             className = "header-right",
