@@ -3,3 +3,5 @@
 __pycache__/
 BUILD_INSTRUCTIONS.md
 rerun-container.sh
+key.pem
+cert.pem
