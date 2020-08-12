@@ -10,7 +10,9 @@ from werkzeug.security import check_password_hash
 from app import app
 from layouts.login import login_layout, logout_layout, create_account_layout
 from layouts.authenticated_content import authenticated_content
+from layouts.fitbit_layout import fitbit_tab_layout, fitbit_request_auth_layout
 from users_utils import diabUser as base, db, add_user, send_conf_email, confirm_code
+from utils.fitbit_auth import get_user_access_token, get_hr_today
 
 
 class User(UserMixin, base):
@@ -145,3 +147,17 @@ def confirm(n_clicks, uname, pwd, email, submitted_code):
         else:
             return dash.no_update, "Wrong Code"
     raise dash.exceptions.PreventUpdate
+
+
+
+@app.callback(
+        Output("tabs-content", "children"),
+        [Input("tabs", "value"), Input('url', 'href')]
+    )
+def change_tab_content(tab, url):
+    if tab == "fitbit-tab":
+        if "access_token" in url:
+            return get_hr_today(get_user_access_token(url))
+        return [fitbit_request_auth_layout]
+    else:
+        return ["This is some content"]

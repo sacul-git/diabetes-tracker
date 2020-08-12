@@ -10,12 +10,12 @@ authenticated_content = html.Div(
                         value = "tab1",
                         children = [
                             dcc.Tab(label = "tab1", value = "tab1"),
-                            dcc.Tab(label = "tab2", value = "tab2")
+                            dcc.Tab(label = "fitbit data", value = "fitbit-tab")
                             ]
                         ),
                     html.Div(
                         id = "tabs-content",
-                        children = ["This is some content"]
+                        # children = ["This is some content"]
                         )
                     ]
                 )
