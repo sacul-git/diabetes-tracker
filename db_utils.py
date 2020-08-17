@@ -91,7 +91,7 @@ class basicTracker(db.Model):
 basic_tracker_tbl = Table('basic_tracker', basicTracker.metadata)
 
 
-def create_user_table():
+def create_basic_tracker_table():
     engine = create_engine(connStr)
     basicTracker.metadata.create_all(engine)
     engine.dispose()
