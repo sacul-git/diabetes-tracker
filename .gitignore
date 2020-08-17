@@ -5,3 +5,4 @@ BUILD_INSTRUCTIONS.md
 rerun-container.sh
 key.pem
 cert.pem
+test_data

@@ -14,7 +14,7 @@ from app import app
 from layouts.login import login_layout, logout_layout, create_account_layout
 from layouts.authenticated_content import authenticated_content
 from layouts.fitbit_layout import fitbit_tab_layout, fitbit_request_auth_layout
-from users_utils import diabUser as base, db, add_user, send_conf_email, confirm_code
+from db_utils import diabUser as base, db, add_user, send_conf_email, confirm_code
 from utils.fitbit_auth import get_user_access_token
 from utils.fitbit_api_calls import fitbit_heart
 
