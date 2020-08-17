@@ -12,5 +12,6 @@ COPY . .
 
 RUN chmod +x boot.sh
 
-EXPOSE 5017
+RUN /bin/bash -c "source /usr/src/app/.secrets.env"
+EXPOSE FLASKPORT
 ENTRYPOINT ["./boot.sh"]
