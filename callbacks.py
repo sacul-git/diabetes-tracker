@@ -3,7 +3,10 @@ import re
 import dash
 import dash_html_components as html
 from dash.dependencies import Output, Input, State
+from dash.exceptions import PreventUpdate
 from flask_login import login_user, logout_user, current_user, UserMixin
+import plotly.graph_objects as go
+import pandas as pd
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash
 
@@ -12,7 +15,8 @@ from layouts.login import login_layout, logout_layout, create_account_layout
 from layouts.authenticated_content import authenticated_content
 from layouts.fitbit_layout import fitbit_tab_layout, fitbit_request_auth_layout
 from users_utils import diabUser as base, db, add_user, send_conf_email, confirm_code
-from utils.fitbit_auth import get_user_access_token, get_hr_today
+from utils.fitbit_auth import get_user_access_token
+from utils.fitbit_api_calls import fitbit_heart
 
 
 class User(UserMixin, base):
@@ -149,15 +153,33 @@ def confirm(n_clicks, uname, pwd, email, submitted_code):
     raise dash.exceptions.PreventUpdate
 
 
-
 @app.callback(
-        Output("tabs-content", "children"),
+        Output("fitbit-heart", "data"),
         [Input("tabs", "value"), Input('url', 'href')]
     )
-def change_tab_content(tab, url):
+def load_fitbit_heart_data(tab, url):
     if tab == "fitbit-tab":
         if "access_token" in url:
-            return get_hr_today(get_user_access_token(url))
-        return [fitbit_request_auth_layout]
+            return fitbit_heart(get_user_access_token(url))
+        raise PreventUpdate
     else:
-        return ["This is some content"]
+        raise PreventUpdate
+
+@app.callback(
+        Output("fitbit-graph", "figure"),
+        [Input("fitbit-heart", "data")]
+    )
+def graph_fitbit_heart(data):
+    print("graphing")
+    activities_heart = pd.DataFrame(data["activities-heart"][0]["heartRateZones"])
+    heart_intraday = pd.DataFrame(data["activities-heart-intraday"]["dataset"])
+    print(heart_intraday)
+    heart_intraday_trace = go.Scatter(
+        x = heart_intraday["time"],
+        y = heart_intraday["value"],
+        mode = "lines",
+        name = "Heart Rate"
+    )
+    fig = go.Figure(data = heart_intraday_trace)
+    return fig
+

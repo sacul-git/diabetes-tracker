@@ -41,6 +41,8 @@ def serve_layout():
                     html.A(href="http://www.freepik.com/", children="Freepick"),
                     " from ",
                     html.A(href="https://www.flaticon.com/", children="flaticon.com")
-                    ])
+                    ]),
+
+                dcc.Store(id = "fitbit-heart")
                 ],
             )

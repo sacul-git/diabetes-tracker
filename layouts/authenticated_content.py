@@ -1,6 +1,8 @@
 import dash_core_components as dcc
 import dash_html_components as html
 
+from layouts.fitbit_layout import fitbit_request_auth_layout, fitbit_tab_layout
+
 authenticated_content = html.Div(
         children = [
             html.Div(
@@ -15,7 +17,8 @@ authenticated_content = html.Div(
                         ),
                     html.Div(
                         id = "tabs-content",
-                        # children = ["This is some content"]
+                        children = [fitbit_request_auth_layout,
+                            fitbit_tab_layout]
                         )
                     ]
                 )
