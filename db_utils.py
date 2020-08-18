@@ -10,6 +10,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
+import pandas as pd
 
 env_path = Path('.') / '.secrets.env'
 load_dotenv(dotenv_path=env_path)
@@ -38,28 +39,15 @@ class diabUser(db.Model):
 
 
 class confCodes(db.Model):
+    __tablename__ = "conf_codes"
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(50), unique=True)
     code = db.Column(db.String(15))
 
-User_tbl = Table('diab_user', diabUser.metadata)
-Confcode_tbl = Table('conf_codes', confCodes.metadata)
-
-
-def create_user_table():
-    engine = create_engine(connStr)
-    diabUser.metadata.create_all(engine)
-    engine.dispose()
-
-
-def create_conf_table():
-    engine = create_engine(connStrLocal)
-    confCodes.metadata.create_all(engine)
-    engine.dispose()
-
 
 ## data tables
 class basicTracker(db.Model):
+    __tablename__ = "basic_tracker"
     entryid = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.String(20))
     time = db.Column(db.String(20))
@@ -88,20 +76,44 @@ class basicTracker(db.Model):
     medication = db.Column(db.Float)
 
 
-basic_tracker_tbl = Table('basic_tracker', basicTracker.metadata)
+def create_tables() -> None:
+    """
+    Create the username/password (users), confirmation code (conf_codes) and
+    mysugr data (basic_tracker) Postgresql tables
 
-
-def create_basic_tracker_table():
+    Returns None
+    """
     engine = create_engine(connStr)
-    basicTracker.metadata.create_all(engine)
+    db.Model.metadata.create_all(engine)
     engine.dispose()
 
+
+def upload_sugr_data(path: str) -> None:
+    """
+    Uploads data from mySugr app to Postgres. Uses all of the columns provided
+    in mySugr data export csv (some of which are probably not needed)
+
+    Args:
+        path (str): Path to mySugar export csv
+
+    Returns:
+        None
+    """
+    engine = create_engine(connStr)
+    columns = db.Model.metadata.tables["basic_tracker"].columns.keys()[1:]
+    df = pd.read_csv(path, names = columns, header = 1)
+    df.to_sql(
+        name = "basic_tracker",
+        con = engine,
+        if_exists = "append",
+        index = False
+    )
 
 # User management utils
 
 def add_user(username, password, email):
     hashed_password = generate_password_hash(password, method='sha256')
-    ins = User_tbl.insert().values(
+    ins = db.Model.metadata.tables["users"].insert().values(
         username=username, email=email, password=hashed_password)
     engine = create_engine(connStr)
     conn = engine.connect()
@@ -110,8 +122,17 @@ def add_user(username, password, email):
     engine.dispose()
 
 
-def del_user(username):
-    delete = User_tbl.delete().where(User_tbl.c.username == username)
+def del_user(username: str) -> None:
+    """
+    Delete a user from the username / password database
+
+    Args:
+        username (str): the username you want to delete from the database
+
+    Returns:
+        None
+    """
+    delete = db.Model.metadata.tables["users"].delete().where(db.Model.metadata.tables["users"].c.username == username)
     engine = create_engine(connStr)
     conn = engine.connect()
     conn.execute(delete)
@@ -119,25 +140,27 @@ def del_user(username):
     engine.dispose()
 
 
-def show_users():
-    select_st = select([User_tbl.c.username, User_tbl.c.email])
-    engine = create_engine(connStr)
-    conn = engine.connect()
-    rs = conn.execute(select_st)
-    for row in rs:
-        print(row)
-    conn.close()
-    engine.dispose()
+def send_conf_email(recipient_email: str) -> None:
+    """
+    Sends a confirmation code for registration. Requires GMAILUSER and
+    GMAILPASS environment variables, pointing to a gmail account for which the
+    "Allow less secure apps" setting is turned ON
 
+    Args:
+        recipient_email (str): the email address to send the confirmation code
+            to
 
-def send_conf_email(recipient_email):
+    Returns:
+        None
+
+    """
     code = b64encode(os.urandom(6)).decode('utf-8')
     port = 465
     sender = GMAILUSER
     password = GMAILPASS
     context = ssl.create_default_context()
     message = f"Your confirmation code is {code}"
-    ins = Confcode_tbl.insert().values(email=recipient_email, code=code)
+    ins = db.Model.metadata.tables["conf_codes"].insert().values(email=recipient_email, code=code)
     engine = create_engine(connStr)
     conn = engine.connect()
     conn.execute(ins)
@@ -149,8 +172,8 @@ def send_conf_email(recipient_email):
 
 
 def confirm_code(submitted_code, user_email):
-    select_st = select([Confcode_tbl.c.code]) \
-        .where(Confcode_tbl.c.email == user_email)
+    select_st = select([db.Model.metadata.tables["conf_codes"].c.code]) \
+        .where(db.Model.metadata.tables["conf_codes"].c.email == user_email)
     engine = create_engine(connStr)
     conn = engine.connect()
     rs = conn.execute(select_st)
