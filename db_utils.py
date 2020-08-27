@@ -11,6 +11,7 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
 import pandas as pd
+import ohio.ext.pandas
 
 env_path = Path('.') / '.secrets.env'
 load_dotenv(dotenv_path=env_path)
@@ -102,7 +103,7 @@ def upload_sugr_data(path: str) -> None:
     engine = create_engine(connStr)
     columns = db.Model.metadata.tables["basic_tracker"].columns.keys()[1:]
     df = pd.read_csv(path, names = columns, header = 1)
-    df.to_sql(
+    df.pg_copy_to(
         name = "basic_tracker",
         con = engine,
         if_exists = "append",
@@ -180,3 +181,46 @@ def confirm_code(submitted_code, user_email):
     if rs.next()[0] == submitted_code:
         return True
     return False
+
+
+# db query tools
+def execute_query(
+        query: str = "",
+        query_file: None = None,
+        return_ResultProxy: bool = False
+):
+    """
+    Executes a query, either from a string or a .sql file
+    You will need to have a tunnel to the database server running.
+
+    Args:
+        query (str): The query to be executed
+            Either query or query_file must be supplied
+        query_file (str): path to a .sql file containing the query to run.
+            Either query or query_file must be supplied
+        return_ResultProxy (bool): Whether to return an
+            sqlalchemy.engine.result.ResultProxy instead of a pandas dataframe
+            Defaults to False (i.e. return a pd.DataFrame by default)
+
+    Returns:
+        pandas.DataFrame or sqlalchemy.engine.result.ResultProxy
+
+    """
+    engine = create_engine(connStr)
+    if query == "":
+        try:
+            with open(query_file, "r") as f:
+                query = f.read()
+        except TypeError:
+            raise TypeError("No query found, did you supply either a query or a sql file?")
+        except FileNotFoundError as e:
+            raise e
+    with engine.connect() as connection:
+        if return_ResultProxy:
+            query_results = connection.execute(query)
+        else:
+            query_results = pd.read_sql_query(query, connection)
+    return query_results
+
+
+

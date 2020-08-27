@@ -1,6 +1,5 @@
 import logging
 import os
-from pathlib import Path
 
 from flask_login import LoginManager, UserMixin
 
@@ -23,7 +22,7 @@ app.layout = serve_layout
 default_key = os.urandom(12)
 
 server.config.update(
-    SECRET_KEY=os.getenv("FLASKMOHMALIKEY", default_key),
+    SECRET_KEY=os.getenv("FLASKKEY", default_key),
     SQLALCHEMY_DATABASE_URI=connStr,
     SQLALCHEMY_TRACK_MODIFICATIONS=False
 )
@@ -40,7 +39,7 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 if __name__ == "__main__":
+    # context = "adhoc"
     # app.run_server(debug=True, port=os.getenv("FLASKPORT"), host='0.0.0.0')
     context = ('cert.pem', 'key.pem') #certificate and key files
-    # context = "adhoc"
     app.run_server(debug=True, port=os.getenv("FLASKPORT"), host='0.0.0.0', ssl_context=context)
