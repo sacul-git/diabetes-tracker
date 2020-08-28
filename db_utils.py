@@ -4,8 +4,9 @@ import smtplib
 import ssl
 from base64 import b64encode
 
-from sqlalchemy import Table, create_engine
+from sqlalchemy import Table, create_engine, MetaData, Column, Integer, String, Float
 from sqlalchemy.sql import select
+from sqlalchemy.schema import CreateSchema
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash
@@ -30,7 +31,7 @@ connStrLocal = f"postgresql://{PGUSER}:{PGPASS}@0.0.0.0:{PGPORT}/{PGDB}"
 db = SQLAlchemy()
 
 # table definitions
-## user creation and management
+## user management tables
 
 class diabUser(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -46,41 +47,10 @@ class confCodes(db.Model):
     code = db.Column(db.String(15))
 
 
-## data tables
-class basicTracker(db.Model):
-    __tablename__ = "basic_tracker"
-    entryid = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.String(20))
-    time = db.Column(db.String(20))
-    tags = db.Column(db.String(50))
-    blood_sugar = db.Column(db.Float)
-    insulin_injection_pen_units = db.Column(db.Float)
-    insulin_injection_basal_units = db.Column(db.Float)
-    insulin_injection_pump_units = db.Column(db.Float)
-    insulin_meal = db.Column(db.Float)
-    insulin_correction = db.Column(db.Float)
-    temporary_basal_percentage = db.Column(db.Float)
-    temporary_basal_duration = db.Column(db.Float)
-    meal_carbohydrates = db.Column(db.Float)
-    meal_descriptions = db.Column(db.Float)
-    activity_duration = db.Column(db.Float)
-    activity_intensity = db.Column(db.Float)
-    activity_description = db.Column(db.Float)
-    steps = db.Column(db.Float)
-    note = db.Column(db.String(150))
-    location = db.Column(db.Float)
-    blood_pressure = db.Column(db.String(10))
-    body_weight = db.Column(db.Float)
-    hba1c = db.Column(db.Float)
-    ketones = db.Column(db.Float)
-    food_type = db.Column(db.Float)
-    medication = db.Column(db.Float)
-
-
 def create_tables() -> None:
     """
-    Create the username/password (users), confirmation code (conf_codes) and
-    mysugr data (basic_tracker) Postgresql tables
+    Create the username/password (users) and confirmation code (conf_codes)
+    Postgresql tables
 
     Returns None
     """
@@ -88,8 +58,51 @@ def create_tables() -> None:
     db.Model.metadata.create_all(engine)
     engine.dispose()
 
+## data tables
+def create_basic_tracker_table(schema: str) -> None:
+    """
+    Create the mysugr data (basic_tracker) Postgresql table within the given
+    schema
 
-def upload_sugr_data(path: str) -> None:
+    Returns None
+    """
+    engine = create_engine(connStr)
+    meta = MetaData()
+    basicTracker = Table(
+        "basic_tracker", meta,
+        Column("entryid", Integer, primary_key=True),
+        Column("date", String(20)),
+        Column("time", String(20)),
+        Column("tags", String(50)),
+        Column("blood_sugar", Float),
+        Column("insulin_injection_pen_units", Float),
+        Column("insulin_injection_basal_units", Float),
+        Column("insulin_injection_pump_units", Float),
+        Column("insulin_meal", Float),
+        Column("insulin_correction", Float),
+        Column("temporary_basal_percentage", Float),
+        Column("temporary_basal_duration", Float),
+        Column("meal_carbohydrates", Float),
+        Column("meal_descriptions", Float),
+        Column("activity_duration", Float),
+        Column("activity_intensity", Float),
+        Column("activity_description", Float),
+        Column("steps", Float),
+        Column("note", String(150)),
+        Column("location", Float),
+        Column("blood_pressure", String(10)),
+        Column("body_weight", Float),
+        Column("hba1c", Float),
+        Column("ketones", Float),
+        Column("food_type" ,Float),
+        Column("medication" ,Float),
+        schema = schema
+        )
+    basicTracker.create(engine)
+    engine.dispose()
+
+
+def upload_sugr_data(path: str, schema: str) -> None:
     """
     Uploads data from mySugr app to Postgres. Uses all of the columns provided
     in mySugr data export csv (some of which are probably not needed)
@@ -105,20 +118,36 @@ def upload_sugr_data(path: str) -> None:
     df = pd.read_csv(path, names = columns, header = 1)
     df.pg_copy_to(
         name = "basic_tracker",
+        schema = schema,
         con = engine,
         if_exists = "append",
         index = False
     )
 
+
 # User management utils
 
 def add_user(username, password, email):
+    """
+    Add a user to the username / password database and create a schema for them
+
+    Args:
+        username (str): the username you want to add to the database
+        password (str): the username's password
+        email (str): the user's email
+
+    Returns:
+        None
+    """
     hashed_password = generate_password_hash(password, method='sha256')
-    ins = db.Model.metadata.tables["users"].insert().values(
+    ins = db.Model.metadata.tables["diab_user"].insert().values(
         username=username, email=email, password=hashed_password)
     engine = create_engine(connStr)
     conn = engine.connect()
     conn.execute(ins)
+    # create a schema for each user and add tables
+    engine.execute(CreateSchema(username))
+    create_basic_tracker_table(username)
     conn.close()
     engine.dispose()
 
@@ -137,6 +166,7 @@ def del_user(username: str) -> None:
     engine = create_engine(connStr)
     conn = engine.connect()
     conn.execute(delete)
+    conn.execute(f"DROP SCHEMA IF EXISTS {username} CASCADE;")
     conn.close()
     engine.dispose()
 
