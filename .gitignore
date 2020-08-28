@@ -7,3 +7,4 @@ key.pem
 cert.pem
 test_data
 dd_psql_backup.sh
+*.csv

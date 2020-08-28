@@ -4,7 +4,7 @@ import smtplib
 import ssl
 from base64 import b64encode
 
-from sqlalchemy import Table, create_engine, MetaData, Column, Integer, String, Float
+from sqlalchemy import Table, create_engine, MetaData, Column, Integer, String, Float, DateTime
 from sqlalchemy.sql import select
 from sqlalchemy.schema import CreateSchema
 from flask_sqlalchemy import SQLAlchemy
@@ -29,6 +29,7 @@ connStr = f"postgresql://{PGUSER}:{PGPASS}@{PGHOST}:{PGPORT}/{PGDB}"
 connStrLocal = f"postgresql://{PGUSER}:{PGPASS}@0.0.0.0:{PGPORT}/{PGDB}"
 
 db = SQLAlchemy()
+userdata_metadata = MetaData()
 
 # table definitions
 ## user management tables
@@ -67,7 +68,8 @@ def create_basic_tracker_table(schema: str) -> None:
     Returns None
     """
     engine = create_engine(connStr)
-    meta = MetaData()
+    # meta = MetaData()
+    meta = userdata_metadata
     basicTracker = Table(
         "basic_tracker", meta,
         Column("entryid", Integer, primary_key=True),
@@ -114,16 +116,27 @@ def upload_sugr_data(path: str, schema: str) -> None:
         None
     """
     engine = create_engine(connStr)
-    columns = db.Model.metadata.tables["basic_tracker"].columns.keys()[1:]
-    df = pd.read_csv(path, names = columns, header = 1)
+    tbl = Table("basic_tracker", userdata_metadata, autoload_with=engine, schema=schema)
+    columns = [c.name for c in tbl.c][1:]
+    # check existing:
+    postgresdf = pd.DataFrame.pg_copy_from(
+            "basic_tracker",
+            engine,
+            schema=schema,
+            columns = columns
+        )
+    # import new mySugr
+    exportdf = pd.read_csv(path, names = postgresdf.columns, header=0, index_col = None)
+    #combine the two, keep the original values from postgresdf
+    df = pd.concat([postgresdf, exportdf]).drop_duplicates(keep="first")
     df.pg_copy_to(
         name = "basic_tracker",
         schema = schema,
         con = engine,
-        if_exists = "append",
-        index = False
+        if_exists = "replace",
+        index = True
     )
-
+    return
 
 # User management utils
 
@@ -162,7 +175,7 @@ def del_user(username: str) -> None:
     Returns:
         None
     """
-    delete = db.Model.metadata.tables["users"].delete().where(db.Model.metadata.tables["users"].c.username == username)
+    delete = db.Model.metadata.tables["diab_user"].delete().where(db.Model.metadata.tables["diab_user"].c.username == username)
     engine = create_engine(connStr)
     conn = engine.connect()
     conn.execute(delete)
