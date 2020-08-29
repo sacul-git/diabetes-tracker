@@ -9,18 +9,18 @@ authenticated_content = html.Div(
                 children = [
                     dcc.Tabs(
                         id = "tabs",
-                        value = "tab1",
+                        value = "tracker-tab",
                         children = [
-                            dcc.Tab(label = "tab1", value = "tab1"),
+                            dcc.Tab(label = "Tracker", value = "tracker-tab"),
                             dcc.Tab(label = "fitbit data", value = "fitbit-tab")
                             ]
                         ),
                     html.Div(
                         id = "tabs-content",
-                        children = [fitbit_request_auth_layout,
-                            fitbit_tab_layout]
-                        )
-                    ]
-                )
-            ]
-        )
+                        children = [
+                        ]
+                    )
+                ]
+            )
+        ]
+    )

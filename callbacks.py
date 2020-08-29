@@ -14,9 +14,11 @@ from app import app
 from layouts.login import login_layout, logout_layout, create_account_layout
 from layouts.authenticated_content import authenticated_content
 from layouts.fitbit_layout import fitbit_tab_layout, fitbit_request_auth_layout
+from layouts.tracker_layout import tracker_tab_layout
 from db_utils import diabUser as base, db, add_user, send_conf_email, confirm_code
 from utils.fitbit_auth import get_user_access_token
 from utils.fitbit_api_calls import fitbit_heart
+from utils.plotting_utils import create_bs_fig, get_basic_data
 
 
 class User(UserMixin, base):
@@ -155,7 +157,7 @@ def confirm(n_clicks, uname, pwd, email, submitted_code):
 
 @app.callback(
         Output("fitbit-heart", "data"),
-        [Input("tabs", "value"), Input('url', 'href')]
+        [Input("tabs", "value"), Input("url", "href")]
     )
 def load_fitbit_heart_data(tab, url):
     if tab == "fitbit-tab":
@@ -166,14 +168,24 @@ def load_fitbit_heart_data(tab, url):
         raise PreventUpdate
 
 @app.callback(
+        Output("tabs-content", "children"),
+        [Input("tabs", "value")]
+    )
+def load_fitbit_heart_data(tab):
+    if tab == "fitbit-tab":
+        return [fitbit_request_auth_layout, fitbit_tab_layout]
+    elif tab == "tracker-tab":
+        return [tracker_tab_layout]
+    else:
+        raise PreventUpdate
+
+@app.callback(
         Output("fitbit-graph", "figure"),
         [Input("fitbit-heart", "data")]
     )
 def graph_fitbit_heart(data):
-    print("graphing")
     activities_heart = pd.DataFrame(data["activities-heart"][0]["heartRateZones"])
     heart_intraday = pd.DataFrame(data["activities-heart-intraday"]["dataset"])
-    print(heart_intraday)
     heart_intraday_trace = go.Scatter(
         x = heart_intraday["time"],
         y = heart_intraday["value"],
@@ -183,3 +195,12 @@ def graph_fitbit_heart(data):
     fig = go.Figure(data = heart_intraday_trace)
     return fig
 
+@app.callback(
+    Output("tracker-graph", "figure"),
+    [Input("tabs", "value"), Input("url", "pathname")]
+)
+def update_tracker_tab(tab, url_login):
+    usr = current_user.username
+    if tab == "tracker-tab":
+        return create_bs_fig(get_basic_data(usr))
+    return {}

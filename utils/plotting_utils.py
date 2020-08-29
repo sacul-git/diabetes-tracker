@@ -31,7 +31,7 @@ def get_basic_data(schema: str) -> pd.DataFrame:
     )
     return data
 
-def create_bs_fig(data: pd.DataFrame) -> plotly.graph_objects._figure.Figure:
+def create_bs_fig(data: pd.DataFrame) -> go.Figure:
     """
     Makes the main blood sugar dataframe from the mySugr export data
 
@@ -189,7 +189,3 @@ def create_bs_fig(data: pd.DataFrame) -> plotly.graph_objects._figure.Figure:
         },
     )
     return fig
-
-# mysugar = get_basic_data("lucas")
-fig = create_bs_fig(mysugar)
-fig.show()
